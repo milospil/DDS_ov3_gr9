@@ -6,23 +6,23 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 from sklearn.pipeline import Pipeline
 from sklearn.metrics import accuracy_score, f1_score, classification_report
+from sklearn.utils.class_weight import compute_sample_weight
 
 from sklearn.linear_model import LogisticRegression
 from sklearn.naive_bayes import GaussianNB
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.svm import LinearSVC
+from sklearn.neural_network import MLPClassifier  # <-- NY!
 
 # ---------- 1) Les data ----------
-# Bruk en fil der features er numeriske og target-kolonnen heter SMK_stat_type_cd
-df = pd.read_csv("datasets/preprocessed_data.csv")  # tilpass om du bruker en annen fil
+df = pd.read_csv("datasets/preprocessed_data.csv")
 
 target = "SMK_stat_type_cd"
-drop_if_exists = ["drink"]  # fjern hvis finnes
+drop_if_exists = ["drink"]
 X = df.drop(columns=[c for c in [target] + drop_if_exists if c in df.columns])
 y = df[target].astype(int)
 
-# (valgfritt) sørg for float for numeriske features
+# sikre flyt for numeriske features
 X = X.astype(np.float32, errors="ignore")
 
 # ---------- 2) Train/Val/Test split ----------
@@ -44,21 +44,34 @@ def maybe_subsample(X_, y_, max_rows=150_000):
 X_train_fast, y_train_fast = maybe_subsample(X_train, y_train, max_rows=150_000)
 
 # ---------- 3) Modeller ----------
-# Modeller som trenger skalering: LogReg, NB, SVM
+# Modeller som trenger skalering: LogReg, NB, NN
 logreg = Pipeline([
     ("scaler", StandardScaler()),
-    ("clf", LogisticRegression(max_iter=1000, multi_class="ovr",
-                               class_weight="balanced", n_jobs=-1, random_state=42))
+    ("clf", LogisticRegression(max_iter=1000, class_weight="balanced",
+                               n_jobs=-1, random_state=42))
 ])
 
 nb = Pipeline([
-    ("scaler", StandardScaler()),   # hjelper når features har veldig ulik skala
+    ("scaler", StandardScaler()),
     ("clf", GaussianNB())
 ])
 
-svm = Pipeline([
+# Neural Network (MLP) med early stopping
+nn = Pipeline([
     ("scaler", StandardScaler()),
-    ("clf", LinearSVC(C=1.0, class_weight="balanced", max_iter=5000))
+    ("clf", MLPClassifier(
+        hidden_layer_sizes=(64, 32),
+        activation="relu",
+        solver="adam",
+        alpha=1e-4,                 # L2-reg
+        learning_rate="adaptive",
+        max_iter=100,               # stoppes ofte tidligere av early_stopping
+        early_stopping=True,
+        n_iter_no_change=5,
+        validation_fraction=0.1,
+        random_state=42,
+        verbose=False
+    ))
 ])
 
 # Trær trenger ikke skalering
@@ -77,7 +90,7 @@ models = {
     "NaiveBayes": nb,
     "DecisionTree": dt,
     "RandomForest": rf,
-    "SVM": svm,
+    "NeuralNetwork": nn,   # <-- byttet ut SVM med NN
 }
 
 # ---------- 4) Tren og evaluer ----------
@@ -85,7 +98,17 @@ summary = []
 
 def evaluate(name, model, Xtr, ytr, Xva, yva, Xte, yte):
     print(f"\n=== {name} ===")
-    model.fit(Xtr, ytr)
+
+    # Sample weights for class imbalance (brukes kun der det støttes)
+    sw = None
+    if name in ["NeuralNetwork"]:  # MLPClassifier støtter sample_weight
+        sw = compute_sample_weight(class_weight="balanced", y=ytr)
+
+    # fit (med eller uten sample weights)
+    if sw is not None:
+        model.fit(Xtr, ytr, clf__sample_weight=sw)  # pass videre til 'clf' i pipeline
+    else:
+        model.fit(Xtr, ytr)
 
     # VAL
     yv = model.predict(Xva)
@@ -104,8 +127,8 @@ def evaluate(name, model, Xtr, ytr, Xva, yva, Xte, yte):
                     "Test_Acc": acc, "Test_MacroF1": f1m})
 
 for name, model in models.items():
-    # Bruk undersamplet train for tunge modeller om ønskelig
-    if name in ["RandomForest", "SVM"]:
+    # Bruk undersamplet train for tunge modeller (RF og NN) om ønskelig
+    if name in ["RandomForest", "NeuralNetwork"]:
         evaluate(name, model, X_train_fast, y_train_fast, X_val, y_val, X_test, y_test)
     else:
         evaluate(name, model, X_train, y_train, X_val, y_val, X_test, y_test)
@@ -115,6 +138,5 @@ summary_df = pd.DataFrame(summary)
 print("\n=== Summary ===")
 print(summary_df.sort_values("Test_MacroF1", ascending=False).to_string(index=False))
 
-# (valgfritt) lagre til CSV
 summary_df.to_csv("model_summary.csv", index=False)
 print("\n📁 Lagret: model_summary.csv")
