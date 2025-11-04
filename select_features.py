@@ -459,3 +459,12 @@ print(f"  • preprocessed_data.csv (ready for modeling)")
 print(f"  • outputs/results/*.csv (selection details)")
 print(f"  • outputs/figures/*.png (visualizations)")
 print("="*80)
+
+# Remove height and weight
+confounded_features = ['height', 'weight']
+for feat in confounded_features:
+    if feat in final_selected_features:
+        final_selected_features.remove(feat)
+        print(f"\n✓ Removed {feat} (confounded by sex)")
+
+print(f"\n✓ Final feature count after confounding removal: {len(final_selected_features)}")
