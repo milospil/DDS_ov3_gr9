@@ -10,7 +10,7 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 
 # === 1) Les og del data
-df = pd.read_csv("smoking_drinking_scaled.csv")
+df = pd.read_csv("datasets/smoking_drinking_scaled.csv")
 
 drop_cols = [c for c in ['SMK_stat_type_cd', 'drink'] if c in df.columns]
 X = df.drop(columns=drop_cols).astype(np.float32)   # komprimer til float32
@@ -58,4 +58,4 @@ imp.head(20).iloc[::-1].plot(kind="barh")
 plt.xlabel("Relative Importance"); plt.title("RF Feature Importance – Smoking")
 plt.tight_layout(); plt.savefig("rf_importance.png", dpi=150); plt.close()
 
-print("\n✅ Lagret: rf_cm.png, rf_importance.png")
+print("\n Lagret: rf_cm.png, rf_importance.png")

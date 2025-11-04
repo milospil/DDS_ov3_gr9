@@ -2,7 +2,7 @@ import pandas as pd
 from sklearn.preprocessing import StandardScaler
 
 # === 1) Les inn renset CSV ===
-df = pd.read_csv("smoking_drinking_filtered.csv")
+df = pd.read_csv("datasets/smoking_drinking_filtered.csv")
 
 # === 2) Definer hva som skal/ikke skal skaleres ===
 # - Ikke skaler: binære/ordinære kategorier og target
@@ -49,7 +49,7 @@ for col in ['sex', 'urine_protein', 'SMK_stat_type_cd', 'drink']:
             pass  # hopp over hvis kolonnen ikke lar seg caste (f.eks. mangler verdier)
 
 # === 6) Lagre som ny fil ===
-df_out.to_csv("smoking_drinking_scaled.csv", index=False)
+df_out.to_csv("datasets/smoking_drinking_scaled.csv", index=False)
 
-print("✅ Skalert kolonner:", features_to_scale)
-print("📁 Lagret: 'smoking_drinking_scaled.csv' (skalerte verdier avrundet til 3 desimaler)")
+print(" Skalert kolonner:", features_to_scale)
+print(" Lagret: 'datasets/smoking_drinking_scaled.csv' (skalerte verdier avrundet til 3 desimaler)")

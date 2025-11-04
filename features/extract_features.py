@@ -6,7 +6,7 @@ import numpy as np
 # ============================================
 # 1. LOAD DATA
 # ============================================
-df = pd.read_csv('smoking_drinking_numeric.csv')  # Adjust your filename
+df = pd.read_csv('datasets/smoking_drinking_numeric.csv')  # Adjust your filename
 
 print(f"Original feature count: {len(df.columns)}")
 print(f"Dataset shape: {df.shape}\n")
@@ -107,8 +107,8 @@ for i, feat in enumerate(new_features, 1):
 # ============================================
 # 4. SAVE
 # ============================================
-df.to_csv('feature_extracted_data.csv', index=False)
-print(f"\n✅ Data saved to: feature_extracted_data.csv")
+df.to_csv('datasets/feature_extracted_data.csv', index=False)
+print(f"\nData saved to: datasets/feature_extracted_data.csv")
 print(f"{'='*60}\n")
 
 # Show sample of new features

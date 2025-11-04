@@ -28,7 +28,7 @@ os.makedirs('outputs/results', exist_ok=True)
 # 1. LOAD DATA AFTER FEATURE EXTRACTION
 # ============================================
 print("Loading data after feature extraction...")
-df = pd.read_csv('feature_extracted_data.csv')
+df = pd.read_csv('datasets/feature_extracted_data.csv')
 
 # Separate features and target
 X = df.drop(['SMK_stat_type_cd', 'drink'], axis=1)  # Drop target and drink
@@ -487,7 +487,7 @@ X_selected = X[final_selected_features]
 final_data = X_selected.copy()
 final_data['SMK_stat_type_cd'] = y
 
-final_data.to_csv('preprocessed_data.csv', index=False)
+final_data.to_csv('datasets/preprocessed_data.csv', index=False)
 print("✓ Saved preprocessed_data.csv (with selected features only)")
 
 # ============================================

@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 
-sd_df = pd.read_csv("smoking_drinking_numeric.csv")
+sd_df = pd.read_csv("datasets/smoking_drinking_numeric.csv")
 
 
 print("\n")
@@ -60,5 +60,5 @@ for col, (low, high) in medical_ranges.items():
 
 
 # Save the filtered dataset to a new CSV file
-sd_df.to_csv("smoking_drinking_filtered.csv", index=False)
+sd_df.to_csv("datasets/smoking_drinking_filtered.csv", index=False)
 print("Filtered dataset saved to 'smoking_drinking_filtered.csv'.")

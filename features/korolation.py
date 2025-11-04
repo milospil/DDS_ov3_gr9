@@ -3,7 +3,7 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 
 # === 1. Les inn data ===
-df = pd.read_csv("smoking_drinking_scaled.csv")
+df = pd.read_csv("datasets/smoking_drinking_scaled.csv")
 
 # === 2. Definer target ===
 target = 'SMK_stat_type_cd'
@@ -20,8 +20,8 @@ print("📊 Top 10 features most correlated with smoking status (1=Never, 2=Form
 print(corr_df.head(10).to_string(index=False))
 
 # === 6. (Valgfritt) Lagre hele korrelasjonslisten til CSV for rapportbruk ===
-corr_df.to_csv("correlation_with_smoking_status.csv", index=False)
-print("\n✅ Full correlation list saved as 'correlation_with_smoking_status.csv'")
+corr_df.to_csv("datasets/correlation_with_smoking_status.csv", index=False)
+print("\nFull correlation list saved as 'datasets/correlation_with_smoking_status.csv'")
 
 # === 7. Plot korrelasjoner ===
 plt.figure(figsize=(8,6))

@@ -1,7 +1,7 @@
 import pandas as pd
 
 # === 1. Les inn CSV-filen ===
-df = pd.read_csv("sd_dataset.csv")
+df = pd.read_csv("datasets/sd_dataset.csv")
 
 # === 2. Sjekk unike verdier før encoding (for kontroll) ===
 print("Unique values in 'sex':", df['sex'].unique())
@@ -38,6 +38,6 @@ df = df.drop(columns=cols_to_drop, errors='ignore')
 """
 
 # === 7. Lagre ny fil uten tekstkolonner ===
-df.to_csv("smoking_drinking_numeric.csv", index=False)
+df.to_csv("datasets/smoking_drinking_numeric.csv", index=False)
 
 print("New CSV file")

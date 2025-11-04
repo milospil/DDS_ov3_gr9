@@ -31,7 +31,7 @@ warnings.filterwarnings('ignore')
 # 1. LOAD PREPROCESSED DATA
 # ============================================
 print("Loading preprocessed data...")
-df = pd.read_csv('../data/preprocessed_data.csv')
+df = pd.read_csv('datasets/preprocessed_data.csv')
 
 # Separate features and target
 X = df.drop('SMK_stat', axis=1)
@@ -275,11 +275,11 @@ plt.tight_layout()
 plt.savefig('../outputs/figures/model_comparison.png', dpi=300, bbox_inches='tight')
 plt.close()
 
-print("\n✅ All models trained and evaluated successfully!")
-print(f"📊 Results saved to: ../outputs/results/model_results.csv")
-print(f"📈 Visualizations saved to: ../outputs/figures/")
+print("\nAll models trained and evaluated successfully!")
+print(f" Results saved to: ../outputs/results/model_results.csv")
+print(f" Visualizations saved to: ../outputs/figures/")
 print("\n" + "="*60)
-print(f"🏆 BEST MODEL: {results_df.loc[results_df['F1-Score'].idxmax(), 'Model']}")
+print(f" BEST MODEL: {results_df.loc[results_df['F1-Score'].idxmax(), 'Model']}")
 print(f"   F1-Score: {results_df['F1-Score'].max():.4f}")
 print(f"   ROC-AUC: {results_df.loc[results_df['F1-Score'].idxmax(), 'ROC-AUC']:.4f}")
 print("="*60)
