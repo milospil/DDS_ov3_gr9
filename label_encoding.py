@@ -26,6 +26,17 @@ print(f"Fjernet kolonner: {cols_to_drop}")
 # === 6. Sjekk at ingen tekstkolonner gjenstår ===
 print("Data types after encoding:\n", df.dtypes)
 
+df['BMI'] = df['weight'] / ((df['height'] / 100) ** 2)
+df['BP_ratio'] = df['SBP'] / df['DBP']
+df['HDL_LDL_ratio'] = df['HDL_chole'] / df['LDL_chole']
+
+df[['BMI', 'BP_ratio', 'HDL_LDL_ratio']] = df[['BMI', 'BP_ratio', 'HDL_LDL_ratio']].round(1)
+
+# === 3. Fjern kolonner som ikke lenger trengs ===
+cols_to_drop = ['height', 'weight']  # fjern bare de to som er "innebygd" i BMI
+df = df.drop(columns=cols_to_drop, errors='ignore')
+
+
 # === 7. Lagre ny fil uten tekstkolonner ===
 df.to_csv("smoking_drinking_numeric.csv", index=False)
 
