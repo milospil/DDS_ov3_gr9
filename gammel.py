@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 
-sd_df = pd.read_csv("sd_dataset.csv")
+sd_df = pd.read_csv("smoking_drinking_numeric.csv")
 
 
 print("\n")
