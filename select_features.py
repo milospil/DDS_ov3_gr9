@@ -385,7 +385,53 @@ for i, feat in enumerate(sorted(final_selected_features), 1):
     score = selection_scores[feat]['score']
     methods = ', '.join(selection_scores[feat]['methods'])
     print(f"{i:2d}. {feat:30s} (Score: {score}/5, Methods: {methods})")
+# ============================================
+# 10.5. DOMAIN KNOWLEDGE OVERRIDE - REMOVE CONFOUNDED FEATURES
+# ============================================
+print("\n" + "="*80)
+print("DOMAIN KNOWLEDGE OVERRIDE - CONFOUNDING ANALYSIS")
+print("="*80)
 
+# Analyze sex-height-weight relationship
+print("\nAnalyzing potential confounding by sex:")
+sex_fscore = anova_results[anova_results['feature']=='sex']['f_score'].values[0]
+height_fscore = anova_results[anova_results['feature']=='height']['f_score'].values[0]
+weight_fscore = anova_results[anova_results['feature']=='weight']['f_score'].values[0]
+bmi_fscore = anova_results[anova_results['feature']=='BMI']['f_score'].values[0]
+
+print(f"  sex F-score:    {sex_fscore:,.0f} (1st rank)")
+print(f"  height F-score: {height_fscore:,.0f} (2nd rank)")
+print(f"  weight F-score: {weight_fscore:,.0f} (4th rank)")
+print(f"  BMI F-score:    {bmi_fscore:,.0f} (13th rank)")
+
+print("\nRationale for removal:")
+print("  1. Males are significantly taller and heavier than females (biological sex difference)")
+print("  2. Males have substantially higher smoking rates (behavioral sex difference)")
+print("  3. Height and weight serve as proxy variables for sex rather than independent predictors")
+print("  4. Sex dominates all methods (2-3x stronger than height/weight)")
+print("  5. BMI captures the meaningful body composition relationship normalized for height")
+
+# Remove confounded features
+confounded_features = ['height', 'weight']
+
+print("\nRemoving confounded features:")
+for feat in confounded_features:
+    if feat in final_selected_features:
+        score = selection_scores[feat]['score']
+        methods = ', '.join(selection_scores[feat]['methods'])
+        final_selected_features.remove(feat)
+        print(f"  ✓ Removed '{feat}' (Score: {score}/5, Methods: {methods})")
+        print(f"    Information captured by: sex + BMI")
+
+print(f"\n{'='*80}")
+print(f"UPDATED FINAL FEATURE COUNT: {len(final_selected_features)} features")
+print(f"{'='*80}")
+
+# Re-print updated final selected features
+for i, feat in enumerate(sorted(final_selected_features), 1):
+    score = selection_scores[feat]['score']
+    methods = ', '.join(selection_scores[feat]['methods'])
+    print(f"{i:2d}. {feat:30s} (Score: {score}/5, Methods: {methods})")
 # ============================================
 # 11. VISUALIZE CONSENSUS
 # ============================================
@@ -460,11 +506,3 @@ print(f"  • outputs/results/*.csv (selection details)")
 print(f"  • outputs/figures/*.png (visualizations)")
 print("="*80)
 
-# Remove height and weight
-confounded_features = ['height', 'weight']
-for feat in confounded_features:
-    if feat in final_selected_features:
-        final_selected_features.remove(feat)
-        print(f"\n✓ Removed {feat} (confounded by sex)")
-
-print(f"\n✓ Final feature count after confounding removal: {len(final_selected_features)}")
