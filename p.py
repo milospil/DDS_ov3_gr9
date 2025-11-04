@@ -1,13 +1,23 @@
 import pandas as pd
-import pyreadstat
+from sklearn.model_selection import train_test_split
 
-# Read the .sav file
-df, meta = pyreadstat.read_sav("pgph.0003946.s001.csv")
+# Load your complete dataset
+df = pd.read_csv('datasets/preprocessed_data.csv')
 
-# Check the first rows
-print(df.head())
+# Add ID column if it doesn't exist
+if 'id' not in df.columns:
+    df.insert(0, 'id', range(len(df)))
 
-# Save to CSV
-df.to_csv("new_file.csv", index=False)
+# Separate features (X) and target variable (y)
+X = df.drop('SMK_stat_type_cd', axis=1)
+y = df[["id", 'SMK_stat_type_cd']]
+# Split into train and test sets
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42
+)
 
-print("Conversion complete: 'new_file.csv'")
+# Save to CSV files
+X_train.to_csv('competition/x_train.csv', index=False)
+X_test.to_csv('competition/x_test.csv', index=False)
+y_train.to_csv('competition/y_train.csv', index=False)
+y_test.to_csv('competition/y_test.csv', index=False)

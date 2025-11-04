@@ -18,66 +18,14 @@ from sklearn.neural_network import MLPClassifier
 from sklearn.model_selection import GridSearchCV
 from sklearn.metrics import make_scorer, f1_score
 
-df = pd.read_csv('smoking_drinking_numeric.csv')
+
+# Load the pre-split data
+X_train = pd.read_csv('competition/x_train.csv')
+X_test = pd.read_csv('competition/x_test.csv')
+y_train = pd.read_csv('competition/y_train.csv')
+y_test = pd.read_csv('competition/y_test.csv')
 
 
-def prepare_smoking_data(df):
-    """
-    Prepare data specifically for smoking status prediction
-    """
-    print("="*60)
-    print("DATA PREPARATION FOR SMOKING PREDICTION")
-    print("="*60)
-    
-    # Create a clean copy
-    df_clean = df.copy()
-    
-    # Target variable: SMK_stat_type_cd (1=never, 2=former, 3=current)
-    target = 'SMK_stat_type_cd'
-    
-    # Check target distribution
-    print("\nSmoking Status Distribution:")
-    print(df_clean[target].value_counts().sort_index())
-    print("\nPercentages:")
-    print(df_clean[target].value_counts(normalize=True).sort_index() * 100)
-    
-    # Encode categorical variables
-    df_clean['sex_encoded'] = df_clean['sex'].map({'Male': 1, 'Female': 0})
-    df_clean['dink_encoded'] = df_clean['drink'].map({'Y': 1, 'N': 0})
-    
-    
-    # Handle missing values
-    print("\nMissing values per column:")
-    print(df_clean.isnull().sum()[df_clean.isnull().sum() > 0])
-    
-    # Impute missing values with median
-    from sklearn.impute import SimpleImputer
-    imputer = SimpleImputer(strategy='median')
-    
-    # Separate features and target
-    X = df_clean.drop(target, axis=1)
-    y = df_clean[target]
-    
-    # Impute
-    X_imputed = pd.DataFrame(
-        imputer.fit_transform(X),
-        columns=X.columns,
-        index=X.index
-    )
-    
-    return X_imputed, y
-
-
-X, y = prepare_smoking_data(df)
-
-# Split features (X) and target (y) into train and test sets
-X_train, X_test, y_train, y_test = train_test_split(
-    X,                    # Your features
-    y,                    # Your target variable
-    test_size=0.2,        # 20% for testing, 80% for training
-    random_state=42,      # For reproducibility
-    stratify=y            # Keeps class distribution balanced
-)
 
 # Visualize smoking-related patterns
 def explore_smoking_patterns(df):
@@ -227,7 +175,7 @@ def select_smoking_features(X, y, n_features=25):
 
 
 
-def train_smoking_models(X_train, X_test, y_train, y_test):
+def train_smoking_models(x_train, x_test, y_train, y_test):
     """
     Train and optimize models specifically for smoking prediction
     """
@@ -304,33 +252,21 @@ def train_smoking_models(X_train, X_test, y_train, y_test):
     ✓ No preprocessing needed for raw lab values
     """
     
-    # 3. GRADIENT BOOSTING (Additional high-performer)
-    print("\n[3/5] Training Gradient Boosting...")
-    gb_params = {
-        'n_estimators': [100, 200],
-        'learning_rate': [0.05, 0.1],
-        'max_depth': [3, 5, 7],
-        'subsample': [0.8, 1.0]
+    # 3. DECISION TREE
+    print("\n[3/5] Training Decision Tree...")
+    dt_params = {
+        'max_depth': [5, 10, 15, 20, None],
+        'min_samples_split': [2, 5, 10],
+        'min_samples_leaf': [1, 2, 4],
+        'criterion': ['gini', 'entropy'],
+        'class_weight': ['balanced', None]
     }
     
-    gb = GridSearchCV(
-        GradientBoostingClassifier(random_state=42),
-        gb_params,
-        cv=5,
-        scoring=scorer,
-        n_jobs=-1
-    )
-    gb.fit(X_train, y_train)
-    models['Gradient Boosting'] = gb.best_estimator_
+    dt = GridSearchCV(DecisionTreeClassifier(random_state=42), dt_params, cv=5, scoring=scorer, n_jobs=-1)
+    dt.fit(X_train, y_train)
+    models['Decision Tree'] = dt.best_estimator_
+    print("✓ Decision Tree trained")
     
-    gb_justification = """
-    JUSTIFICATION - Gradient Boosting for Smoking:
-    ✓ Sequential learning focuses on misclassified smokers
-    ✓ Better performance than RF for imbalanced data
-    ✓ Captures subtle biomarker patterns
-    ✓ Less prone to overfitting with proper tuning
-    ✓ State-of-the-art for medical classification
-    """
     
     # 4. SVM
     print("\n[4/5] Training SVM...")
