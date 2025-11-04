@@ -1,3 +1,5 @@
+# 5_feature_selection.py - TASK 4: FEATURE SELECTION
+
 """
 Assignment 3 - Task 4: Feature Selection and Justification
 Selects the most important features for smoking detection using multiple methods
@@ -10,29 +12,71 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
-from sklearn.feature_selection import SelectKBest, f_classif, chi2, mutual_info_classif, RFE
+from sklearn.feature_selection import SelectKBest, f_classif, mutual_info_classif, RFE
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.preprocessing import StandardScaler
 import warnings
+import os
 warnings.filterwarnings('ignore')
+
+# Create output directories if they don't exist
+os.makedirs('outputs/figures', exist_ok=True)
+os.makedirs('outputs/results', exist_ok=True)
 
 # ============================================
 # 1. LOAD DATA AFTER FEATURE EXTRACTION
 # ============================================
 print("Loading data after feature extraction...")
-df = pd.read_csv('../data/feature_extracted_data.csv')
+df = pd.read_csv('feature_extracted_data.csv')
 
 # Separate features and target
-X = df.drop('SMK_stat', axis=1)
-y = df['SMK_stat']
+X = df.drop(['SMK_stat_type_cd', 'drink'], axis=1)  # Drop target and drink
+y = df['SMK_stat_type_cd']
 
 print(f"Starting with {X.shape[1]} features")
 print(f"Dataset shape: {X.shape}")
-print(f"\nFeatures: {list(X.columns)}\n")
+print(f"\nTarget distribution:")
+print(y.value_counts())
 
 # ============================================
-# 2. METHOD 1: CORRELATION ANALYSIS
+# 2. ENCODE CATEGORICAL FEATURES
+# ============================================
+print("\n" + "="*80)
+print("ENCODING CATEGORICAL FEATURES")
+print("="*80)
+
+# Check for categorical columns
+categorical_cols = X.select_dtypes(include=['object', 'category']).columns.tolist()
+
+if categorical_cols:
+    print(f"Found {len(categorical_cols)} categorical column(s): {categorical_cols}")
+    
+    # One-hot encode age_group
+    if 'age_group' in categorical_cols:
+        print("\nOne-hot encoding 'age_group'...")
+        age_group_dummies = pd.get_dummies(X['age_group'], prefix='age_group', drop_first=True)
+        print(f"  Created {len(age_group_dummies.columns)} dummy variables:")
+        for col in age_group_dummies.columns:
+            print(f"    • {col}")
+        
+        # Drop original and add dummies
+        X = X.drop('age_group', axis=1)
+        X = pd.concat([X, age_group_dummies], axis=1)
+else:
+    print("No categorical columns found - all features are already numeric")
+
+print(f"\n✓ After encoding: {X.shape[1]} features")
+
+# Verify all numeric
+non_numeric = X.select_dtypes(exclude=[np.number]).columns.tolist()
+if non_numeric:
+    print(f"\n❌ WARNING: Non-numeric columns remain: {non_numeric}")
+else:
+    print("✓ All features verified as numeric\n")
+
+# ============================================
+# 3. METHOD 1: CORRELATION ANALYSIS
 # ============================================
 print("="*80)
 print("METHOD 1: CORRELATION ANALYSIS - REMOVE HIGHLY CORRELATED FEATURES")
@@ -62,36 +106,44 @@ for i in range(len(correlation_matrix.columns)):
             else:
                 features_to_remove.add(feature1)
 
-print(f"\nFound {len(high_corr_pairs)} highly correlated pairs (|r| > 0.9):")
-for feat1, feat2, corr in high_corr_pairs:
-    print(f"  • {feat1} <-> {feat2}: r = {corr:.3f}")
-
-print(f"\nFeatures to remove due to multicollinearity: {features_to_remove}")
-
-# Remove highly correlated features
-X_no_corr = X.drop(columns=list(features_to_remove))
-print(f"\nAfter removing correlated features: {X_no_corr.shape[1]} features remaining")
+if high_corr_pairs:
+    print(f"\nFound {len(high_corr_pairs)} highly correlated pairs (|r| > 0.9):")
+    for feat1, feat2, corr in high_corr_pairs:
+        print(f"  • {feat1} <-> {feat2}: r = {corr:.3f}")
+    
+    print(f"\nFeatures to remove due to multicollinearity ({len(features_to_remove)}):")
+    for feat in sorted(features_to_remove):
+        print(f"  • {feat}")
+    
+    # Remove highly correlated features
+    X_no_corr = X.drop(columns=list(features_to_remove))
+    print(f"\n✓ After removing correlated features: {X_no_corr.shape[1]} features remaining")
+else:
+    print("\nNo highly correlated pairs found (|r| > 0.9)")
+    X_no_corr = X.copy()
 
 # Visualize correlation matrix
-plt.figure(figsize=(14, 12))
-sns.heatmap(correlation_matrix, cmap='coolwarm', center=0, 
+plt.figure(figsize=(18, 16))
+mask = np.triu(np.ones_like(correlation_matrix, dtype=bool))
+sns.heatmap(correlation_matrix, mask=mask, cmap='coolwarm', center=0, 
             square=True, linewidths=0.5, cbar_kws={"shrink": 0.8},
-            xticklabels=True, yticklabels=True)
-plt.title('Feature Correlation Matrix (Before Selection)', fontsize=14, fontweight='bold')
-plt.xticks(rotation=45, ha='right', fontsize=8)
-plt.yticks(fontsize=8)
+            annot=False, fmt='.2f')
+plt.title('Feature Correlation Matrix (Before Selection)', fontsize=16, fontweight='bold')
+plt.xticks(rotation=45, ha='right', fontsize=9)
+plt.yticks(fontsize=9)
 plt.tight_layout()
-plt.savefig('../outputs/figures/correlation_matrix.png', dpi=300, bbox_inches='tight')
+plt.savefig('outputs/figures/correlation_matrix.png', dpi=300, bbox_inches='tight')
 plt.close()
+print("✓ Saved correlation matrix heatmap\n")
 
 # ============================================
-# 3. METHOD 2: ANOVA F-TEST (STATISTICAL SIGNIFICANCE)
+# 4. METHOD 2: ANOVA F-TEST
 # ============================================
-print("\n" + "="*80)
+print("="*80)
 print("METHOD 2: ANOVA F-TEST - STATISTICAL SIGNIFICANCE")
 print("="*80)
 
-# Perform ANOVA F-test for continuous features
+# Perform ANOVA F-test
 f_scores, p_values = f_classif(X_no_corr, y)
 
 # Create dataframe with results
@@ -104,30 +156,43 @@ anova_results = pd.DataFrame({
 print("\nTop 20 features by F-score:")
 print(anova_results.head(20).to_string(index=False))
 
-# Keep features with p < 0.05 (statistically significant)
+# Keep features with p < 0.05
 significant_features = anova_results[anova_results['p_value'] < 0.05]['feature'].tolist()
-print(f"\n{len(significant_features)} features are statistically significant (p < 0.05)")
+print(f"\n✓ {len(significant_features)} features are statistically significant (p < 0.05)")
+
+# Features with p >= 0.05 (not significant)
+non_significant = anova_results[anova_results['p_value'] >= 0.05]['feature'].tolist()
+if non_significant:
+    print(f"\nFeatures NOT significant (p >= 0.05): {len(non_significant)}")
+    for feat in non_significant:
+        p_val = anova_results[anova_results['feature'] == feat]['p_value'].values[0]
+        print(f"  • {feat} (p = {p_val:.4f})")
 
 # Visualize F-scores
-plt.figure(figsize=(12, 8))
+plt.figure(figsize=(12, 10))
 top_20 = anova_results.head(20)
-plt.barh(top_20['feature'], top_20['f_score'], color='steelblue')
-plt.xlabel('F-Score', fontsize=12)
-plt.ylabel('Features', fontsize=12)
+colors = ['green' if p < 0.05 else 'red' for p in top_20['p_value']]
+plt.barh(range(len(top_20)), top_20['f_score'], color=colors)
+plt.yticks(range(len(top_20)), top_20['feature'])
+plt.xlabel('F-Score', fontsize=12, fontweight='bold')
+plt.ylabel('Features', fontsize=12, fontweight='bold')
 plt.title('Top 20 Features by ANOVA F-Score', fontsize=14, fontweight='bold')
 plt.gca().invert_yaxis()
+plt.axvline(x=0, color='black', linestyle='-', linewidth=0.5)
+plt.legend(['p < 0.05 (Significant)', 'p >= 0.05 (Not Significant)'], loc='lower right')
 plt.tight_layout()
-plt.savefig('../outputs/figures/anova_f_scores.png', dpi=300, bbox_inches='tight')
+plt.savefig('outputs/figures/anova_f_scores.png', dpi=300, bbox_inches='tight')
 plt.close()
+print("✓ Saved ANOVA F-scores plot\n")
 
 # ============================================
-# 4. METHOD 3: MUTUAL INFORMATION
+# 5. METHOD 3: MUTUAL INFORMATION
 # ============================================
-print("\n" + "="*80)
+print("="*80)
 print("METHOD 3: MUTUAL INFORMATION - NON-LINEAR RELATIONSHIPS")
 print("="*80)
 
-# Calculate mutual information scores
+# Calculate mutual information
 mi_scores = mutual_info_classif(X_no_corr, y, random_state=42)
 
 mi_results = pd.DataFrame({
@@ -139,26 +204,29 @@ print("\nTop 20 features by Mutual Information:")
 print(mi_results.head(20).to_string(index=False))
 
 # Visualize MI scores
-plt.figure(figsize=(12, 8))
+plt.figure(figsize=(12, 10))
 top_20_mi = mi_results.head(20)
-plt.barh(top_20_mi['feature'], top_20_mi['mi_score'], color='darkgreen')
-plt.xlabel('Mutual Information Score', fontsize=12)
-plt.ylabel('Features', fontsize=12)
+plt.barh(range(len(top_20_mi)), top_20_mi['mi_score'], color='darkgreen')
+plt.yticks(range(len(top_20_mi)), top_20_mi['feature'])
+plt.xlabel('Mutual Information Score', fontsize=12, fontweight='bold')
+plt.ylabel('Features', fontsize=12, fontweight='bold')
 plt.title('Top 20 Features by Mutual Information', fontsize=14, fontweight='bold')
 plt.gca().invert_yaxis()
 plt.tight_layout()
-plt.savefig('../outputs/figures/mutual_information_scores.png', dpi=300, bbox_inches='tight')
+plt.savefig('outputs/figures/mutual_information_scores.png', dpi=300, bbox_inches='tight')
 plt.close()
+print("✓ Saved Mutual Information plot\n")
 
 # ============================================
-# 5. METHOD 4: RANDOM FOREST FEATURE IMPORTANCE
+# 6. METHOD 4: RANDOM FOREST FEATURE IMPORTANCE
 # ============================================
-print("\n" + "="*80)
+print("="*80)
 print("METHOD 4: RANDOM FOREST FEATURE IMPORTANCE - EMBEDDED METHOD")
 print("="*80)
 
-# Train Random Forest to get feature importances
-rf = RandomForestClassifier(n_estimators=100, random_state=42, n_jobs=-1)
+# Train Random Forest
+print("Training Random Forest (this may take a moment)...")
+rf = RandomForestClassifier(n_estimators=100, random_state=42, n_jobs=-1, max_depth=15)
 rf.fit(X_no_corr, y)
 
 rf_importance = pd.DataFrame({
@@ -170,32 +238,34 @@ print("\nTop 20 features by Random Forest Importance:")
 print(rf_importance.head(20).to_string(index=False))
 
 # Visualize RF importance
-plt.figure(figsize=(12, 8))
+plt.figure(figsize=(12, 10))
 top_20_rf = rf_importance.head(20)
-plt.barh(top_20_rf['feature'], top_20_rf['importance'], color='forestgreen')
-plt.xlabel('Importance', fontsize=12)
-plt.ylabel('Features', fontsize=12)
+plt.barh(range(len(top_20_rf)), top_20_rf['importance'], color='forestgreen')
+plt.yticks(range(len(top_20_rf)), top_20_rf['feature'])
+plt.xlabel('Importance', fontsize=12, fontweight='bold')
+plt.ylabel('Features', fontsize=12, fontweight='bold')
 plt.title('Top 20 Features by Random Forest Importance', fontsize=14, fontweight='bold')
 plt.gca().invert_yaxis()
 plt.tight_layout()
-plt.savefig('../outputs/figures/rf_feature_importance_selection.png', dpi=300, bbox_inches='tight')
+plt.savefig('outputs/figures/rf_feature_importance_selection.png', dpi=300, bbox_inches='tight')
 plt.close()
+print("✓ Saved Random Forest importance plot\n")
 
 # ============================================
-# 6. METHOD 5: RECURSIVE FEATURE ELIMINATION (RFE)
+# 7. METHOD 5: RECURSIVE FEATURE ELIMINATION (RFE)
 # ============================================
-print("\n" + "="*80)
+print("="*80)
 print("METHOD 5: RECURSIVE FEATURE ELIMINATION (RFE) - WRAPPER METHOD")
 print("="*80)
 
-# Use Logistic Regression as estimator for RFE
-lr = LogisticRegression(max_iter=1000, random_state=42)
-
-# Scale features for logistic regression
+# Scale features for RFE with Logistic Regression
+print("Scaling features for RFE...")
 scaler = StandardScaler()
 X_scaled = scaler.fit_transform(X_no_corr)
 
-# Perform RFE to select top 25 features
+# Perform RFE
+print("Performing RFE (this may take a moment)...")
+lr = LogisticRegression(max_iter=1000, random_state=42)
 rfe = RFE(estimator=lr, n_features_to_select=25, step=1)
 rfe.fit(X_scaled, y)
 
@@ -207,39 +277,36 @@ rfe_ranking = pd.DataFrame({
     'selected': rfe.support_
 }).sort_values('ranking')
 
-print(f"\nRFE selected {len(rfe_selected)} features:")
-print(rfe_ranking[rfe_ranking['selected']].to_string(index=False))
+print(f"\n✓ RFE selected {len(rfe_selected)} features:")
+print(rfe_ranking[rfe_ranking['selected']]['feature'].tolist())
+
+print("\nFeatures NOT selected by RFE:")
+not_selected = rfe_ranking[~rfe_ranking['selected']]
+for _, row in not_selected.head(10).iterrows():
+    print(f"  • {row['feature']} (rank: {row['ranking']})")
 
 # ============================================
-# 7. DOMAIN KNOWLEDGE VALIDATION
+# 8. DOMAIN KNOWLEDGE VALIDATION
 # ============================================
 print("\n" + "="*80)
 print("METHOD 6: DOMAIN KNOWLEDGE - MEDICAL LITERATURE")
 print("="*80)
 
-# Features known from medical literature to be important for smoking detection
+# Features known from medical literature
 medical_literature_features = [
-    'hemoglobin',           # Elevated in smokers (polycythemia)
-    'gamma_GT',             # Liver enzyme affected by smoking
-    'HDL_chole',            # Reduced in smokers
-    'total_hdl_ratio',      # Cardiovascular risk indicator
-    'ast_alt_ratio',        # Liver damage pattern
-    'pulse_pressure',       # Arterial stiffness
-    'smoking_risk_score',   # Composite biomarker
-    'BMI',                  # Body composition
-    'age',                  # Strong demographic predictor
-    'triglyceride'          # Lipid metabolism
+    'hemoglobin', 'gamma_GTP', 'HDL_chole', 'total_hdl_ratio',
+    'ast_alt_ratio', 'pulse_pressure', 'smoking_risk_score',
+    'BMI', 'age', 'triglyceride', 'SGOT_AST', 'SGOT_ALT'
 ]
 
-# Filter to features that exist in our dataset
 medical_features_available = [f for f in medical_literature_features if f in X_no_corr.columns]
 
-print(f"\nMedically important features (from literature):")
+print(f"\nMedically important features (from literature): {len(medical_features_available)}")
 for feat in medical_features_available:
     print(f"  • {feat}")
 
 # ============================================
-# 8. COMBINE SELECTION METHODS
+# 9. COMBINE SELECTION METHODS
 # ============================================
 print("\n" + "="*80)
 print("COMBINING ALL SELECTION METHODS")
@@ -254,7 +321,7 @@ top_rf = set(rf_importance.head(n_top)['feature'].tolist())
 top_rfe = set(rfe_selected)
 top_medical = set(medical_features_available)
 
-# Features selected by at least 3 out of 5 methods
+# Calculate consensus scores
 all_features = X_no_corr.columns.tolist()
 selection_scores = {}
 
@@ -290,14 +357,21 @@ selection_df = pd.DataFrame([
     for feat, data in selection_scores.items()
 ]).sort_values('selection_score', ascending=False)
 
-print("\nFeature Selection Summary (sorted by number of methods):")
-print(selection_df.to_string(index=False))
+print("\nFeature Selection Consensus (Top 30):")
+print(selection_df.head(30).to_string(index=False))
+
+# ============================================
+# 10. SELECT FINAL FEATURES
+# ============================================
+print("\n" + "="*80)
+print("FINAL FEATURE SELECTION")
+print("="*80)
 
 # Select features with score >= 3 (selected by at least 3 methods)
 final_selected_features = selection_df[selection_df['selection_score'] >= 3]['feature'].tolist()
 
 # Force-include critical medical features even if score < 3
-critical_medical = ['hemoglobin', 'gamma_GT', 'HDL_chole', 'total_hdl_ratio']
+critical_medical = ['hemoglobin', 'gamma_GTP', 'HDL_chole', 'total_hdl_ratio']
 for feat in critical_medical:
     if feat in X_no_corr.columns and feat not in final_selected_features:
         final_selected_features.append(feat)
@@ -306,59 +380,82 @@ for feat in critical_medical:
 print(f"\n{'='*80}")
 print(f"FINAL SELECTED FEATURES: {len(final_selected_features)} features")
 print(f"{'='*80}")
+
 for i, feat in enumerate(sorted(final_selected_features), 1):
     score = selection_scores[feat]['score']
     methods = ', '.join(selection_scores[feat]['methods'])
-    print(f"{i:2d}. {feat:30s} (Score: {score}, Methods: {methods})")
+    print(f"{i:2d}. {feat:30s} (Score: {score}/5, Methods: {methods})")
 
 # ============================================
-# 9. VISUALIZE FINAL SELECTION
+# 11. VISUALIZE CONSENSUS
 # ============================================
+print("\nCreating consensus visualization...")
 
-# Compare: All methods agreement
-fig, ax = plt.subplots(figsize=(14, 10))
+fig, ax = plt.subplots(figsize=(14, 12))
 
 selection_plot_df = selection_df.sort_values('selection_score', ascending=True)
-colors = ['red' if score < 3 else 'orange' if score == 3 else 'green' 
+colors = ['red' if score < 3 else 'orange' if score == 3 else 'yellowgreen' if score == 4 else 'darkgreen' 
           for score in selection_plot_df['selection_score']]
 
-ax.barh(selection_plot_df['feature'], selection_plot_df['selection_score'], color=colors)
+bars = ax.barh(range(len(selection_plot_df)), selection_plot_df['selection_score'], color=colors)
+ax.set_yticks(range(len(selection_plot_df)))
+ax.set_yticklabels(selection_plot_df['feature'], fontsize=8)
 ax.axvline(x=3, color='black', linestyle='--', linewidth=2, label='Selection Threshold (≥3)')
-ax.set_xlabel('Number of Methods Selecting This Feature', fontsize=12)
-ax.set_ylabel('Features', fontsize=12)
+ax.set_xlabel('Number of Methods Selecting This Feature', fontsize=12, fontweight='bold')
+ax.set_ylabel('Features', fontsize=12, fontweight='bold')
 ax.set_title('Feature Selection Consensus Across Methods', fontsize=14, fontweight='bold')
 ax.set_xlim([0, 6])
-ax.legend()
+ax.legend(['Threshold (≥3 methods)'], loc='lower right')
 ax.grid(axis='x', alpha=0.3)
 
 plt.tight_layout()
-plt.savefig('../outputs/figures/feature_selection_consensus.png', dpi=300, bbox_inches='tight')
+plt.savefig('outputs/figures/feature_selection_consensus.png', dpi=300, bbox_inches='tight')
 plt.close()
+print("✓ Saved consensus visualization\n")
 
 # ============================================
-# 10. SAVE RESULTS
+# 12. SAVE RESULTS
 # ============================================
+print("="*80)
+print("SAVING RESULTS")
+print("="*80)
 
 # Save all selection results
-selection_df.to_csv('../outputs/results/feature_selection_scores.csv', index=False)
-anova_results.to_csv('../outputs/results/anova_scores.csv', index=False)
-mi_results.to_csv('../outputs/results/mutual_information_scores.csv', index=False)
-rf_importance.to_csv('../outputs/results/rf_importance_scores.csv', index=False)
+selection_df.to_csv('outputs/results/feature_selection_scores.csv', index=False)
+print("✓ Saved feature_selection_scores.csv")
+
+anova_results.to_csv('outputs/results/anova_scores.csv', index=False)
+print("✓ Saved anova_scores.csv")
+
+mi_results.to_csv('outputs/results/mutual_information_scores.csv', index=False)
+print("✓ Saved mutual_information_scores.csv")
+
+rf_importance.to_csv('outputs/results/rf_importance_scores.csv', index=False)
+print("✓ Saved rf_importance_scores.csv")
+
+rfe_ranking.to_csv('outputs/results/rfe_ranking.csv', index=False)
+print("✓ Saved rfe_ranking.csv")
 
 # Save final selected dataset
 X_selected = X[final_selected_features]
-y_selected = y
-
 final_data = X_selected.copy()
-final_data['SMK_stat'] = y_selected
+final_data['SMK_stat_type_cd'] = y
 
-final_data.to_csv('../data/preprocessed_data.csv', index=False)
+final_data.to_csv('preprocessed_data.csv', index=False)
+print("✓ Saved preprocessed_data.csv (with selected features only)")
 
-print(f"\n✅ Feature selection complete!")
-print(f"📊 Selection scores saved to: ../outputs/results/feature_selection_scores.csv")
-print(f"📊 Final dataset saved to: ../data/preprocessed_data.csv")
-print(f"📈 Visualizations saved to: ../outputs/figures/")
-print(f"\n{'='*80}")
-print(f"SUMMARY: {X.shape[1]} → {len(final_selected_features)} features")
+# ============================================
+# 13. SUMMARY
+# ============================================
+print("\n" + "="*80)
+print("FEATURE SELECTION COMPLETE!")
+print("="*80)
+print(f"Original features: {X.shape[1]}")
+print(f"After correlation removal: {X_no_corr.shape[1]}")
+print(f"Final selected features: {len(final_selected_features)}")
 print(f"Reduction: {(1 - len(final_selected_features)/X.shape[1])*100:.1f}%")
-print(f"{'='*80}")
+print(f"\nFiles saved:")
+print(f"  • preprocessed_data.csv (ready for modeling)")
+print(f"  • outputs/results/*.csv (selection details)")
+print(f"  • outputs/figures/*.png (visualizations)")
+print("="*80)
