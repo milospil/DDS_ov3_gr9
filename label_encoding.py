@@ -16,7 +16,7 @@ df['DRK_YN'] = df['DRK_YN'].map({'Y': 1, 'N': 0})
 
 # === 4. Gi DRK_YN nytt navn for klarhet ===
 df = df.rename(columns={'DRK_YN': 'drink'})
-
+"""
 # === 5. Fjern irrelevante kolonner ===
 cols_to_drop = ['sight_left', 'sight_right', 'hear_left', 'hear_right']
 df = df.drop(columns=cols_to_drop, errors='ignore')
@@ -35,7 +35,7 @@ df[['BMI', 'BP_ratio', 'HDL_LDL_ratio']] = df[['BMI', 'BP_ratio', 'HDL_LDL_ratio
 # === 3. Fjern kolonner som ikke lenger trengs ===
 cols_to_drop = ['height', 'weight']  # fjern bare de to som er "innebygd" i BMI
 df = df.drop(columns=cols_to_drop, errors='ignore')
-
+"""
 
 # === 7. Lagre ny fil uten tekstkolonner ===
 df.to_csv("smoking_drinking_numeric.csv", index=False)
