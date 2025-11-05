@@ -2,16 +2,47 @@
 
 import pandas as pd
 import numpy as np
-
+from sklearn.model_selection import train_test_split
 
 # ============================================
 # 1. LOAD DATA
 # ============================================
-df = pd.read_csv("competition/dataset_40_percent.csv")  # Adjust your filename
+from sklearn.model_selection import train_test_split
+import pandas as pd
 
-print(f"Original feature count: {len(df.columns)}")
-print(f"Dataset shape: {df.shape}\n")
+df = pd.read_csv("datasets/smoking_drinking_filtered.csv")
 
+print(f"Original dataset shape: {df.shape}")
+
+# -------------------------
+# First split: 60 / 40
+# -------------------------
+fe_df, holdout_60_df = train_test_split(
+    df,
+    test_size=0.60,  # 60% held untouched for later training
+    random_state=42,
+    shuffle=True,
+)
+
+print(f"Feature-engineering pool (40%): {fe_df.shape}")
+print(f"Held-out final data (60%):     {holdout_60_df.shape}")
+
+# -------------------------
+# Second split on the 40%: 80 / 20
+# -------------------------
+fe_train_df, fe_test_df = train_test_split(
+    fe_df,
+    test_size=0.20,  # 20% of 40% = 8% of original data
+    random_state=42,
+    shuffle=True,
+)
+
+print(f"FE Train set (80% of 40%): {fe_train_df.shape}")
+print(f"FE Test set (20% of 40%):  {fe_test_df.shape}")
+print("\nUsing ONLY fe_train_df for feature extraction.\n")
+
+# This df is the one you now engineer features on
+df = fe_train_df.copy()
 # ============================================
 # 2. FEATURE EXTRACTION (12 NEW FEATURES)
 # ============================================
