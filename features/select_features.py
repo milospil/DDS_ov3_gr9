@@ -32,7 +32,7 @@ print("Loading data after feature extraction...")
 df = pd.read_csv("datasets/feature_extracted_data.csv")
 
 # Separate features and target
-X = df.drop(["SMK_stat_type_cd", "drink"], axis=1)  # Drop target and drink
+X = df.drop(["SMK_stat_type_cd"], axis=1)  # Drop target
 y = df["SMK_stat_type_cd"]
 
 print(f"Dataset shape: {X.shape}")
@@ -644,13 +644,13 @@ print("✓ Saved preprocessed_data.csv (with selected features only)")
 print("\n" + "=" * 80)
 print("FEATURE SELECTION COMPLETE!")
 print("=" * 80)
-print(f"Original features: {df.drop(['SMK_stat_type_cd', 'drink'], axis=1).shape[1]}")
+print(f"Original features: {df.drop(['SMK_stat_type_cd'], axis=1).shape[1]}")
 print(f"After label encoding: {X.shape[1]}")
 print(f"After correlation removal: {X_no_corr.shape[1]}")
 print(f"Consensus threshold: ≥4 out of 5 methods (80% agreement)")
 print(f"Final selected features: {len(final_selected_features)}")
 print(
-    f"Reduction: {(1 - len(final_selected_features)/df.drop(['SMK_stat_type_cd', 'drink'], axis=1).shape[1])*100:.1f}%"
+    f"Reduction: {(1 - len(final_selected_features)/df.drop(['SMK_stat_type_cd'], axis=1).shape[1])*100:.1f}%"
 )
 print(f"\nFiles saved:")
 print(f"  • preprocessed_data.csv (ready for modeling)")
