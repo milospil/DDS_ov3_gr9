@@ -32,7 +32,7 @@ df_40 = X_40.copy()
 df_40['SMK_stat_type_cd'] = y_40
 
 # Save to CSV files
-df_60.to_csv('competition/dataset_60_percent.csv', index=False)
+df_60.to_csv('competition/oppg8/dataset_60_percent.csv', index=False)
 df_40.to_csv('competition/dataset_40_percent.csv', index=False)
 
 print("\n✓ Files saved to competition/ folder")
