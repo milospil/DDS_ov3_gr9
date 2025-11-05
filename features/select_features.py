@@ -428,23 +428,60 @@ print("\nFeature Selection Consensus (Top 30):")
 print(selection_df.head(30).to_string(index=False))
 
 # ============================================
-# 10. SELECT FINAL FEATURES
+# 10. SELECT FINAL FEATURES (UPDATED TO ≥4)
 # ============================================
 print("\n" + "=" * 80)
 print("FINAL FEATURE SELECTION")
 print("=" * 80)
 
-# Select features with score >= 3 (selected by at least 3 methods)
-final_selected_features = selection_df[selection_df["selection_score"] >= 3][
+# UPDATED: Select features with score >= 4 (selected by at least 4 methods)
+# Changed from >= 3 to >= 4 for stronger consensus
+final_selected_features = selection_df[selection_df["selection_score"] >= 4][
     "feature"
 ].tolist()
 
-# Force-include critical medical features even if score < 3
-critical_medical = ["hemoglobin", "gamma_GTP", "HDL_chole", "total_hdl_ratio"]
-for feat in critical_medical:
-    if feat in X_no_corr.columns and feat not in final_selected_features:
-        final_selected_features.append(feat)
-        print(f"\n⚠️ Force-included medical feature: {feat}")
+print(f"\n{'='*80}")
+print(f"CONSENSUS THRESHOLD: ≥4 out of 5 methods (Strong Majority Consensus)")
+print(f"{'='*80}")
+
+# Show breakdown by tier
+tier1_features = selection_df[selection_df["selection_score"] == 5]["feature"].tolist()
+tier2_features = selection_df[selection_df["selection_score"] == 4]["feature"].tolist()
+eliminated_3 = selection_df[selection_df["selection_score"] == 3]["feature"].tolist()
+eliminated_2 = selection_df[selection_df["selection_score"] == 2]["feature"].tolist()
+eliminated_1 = selection_df[selection_df["selection_score"] == 1]["feature"].tolist()
+
+print(f"\nTIER 1 - Selected by all 5 methods: {len(tier1_features)} features")
+for feat in sorted(tier1_features):
+    methods = ", ".join(selection_scores[feat]["methods"])
+    print(f"  • {feat} ({methods})")
+
+print(f"\nTIER 2 - Selected by 4 methods: {len(tier2_features)} features")
+for feat in sorted(tier2_features):
+    methods = ", ".join(selection_scores[feat]["methods"])
+    print(f"  • {feat} ({methods})")
+
+print(f"\n{'='*80}")
+print(f"ELIMINATED FEATURES")
+print(f"{'='*80}")
+
+if eliminated_3:
+    print(f"\nModerate consensus (3/5 methods) - ELIMINATED: {len(eliminated_3)}")
+    for feat in sorted(eliminated_3):
+        methods = ", ".join(selection_scores[feat]["methods"])
+        print(f"  • {feat} ({methods})")
+
+if eliminated_2:
+    print(f"\nWeak consensus (2/5 methods) - ELIMINATED: {len(eliminated_2)}")
+    for feat in sorted(eliminated_2):
+        methods = ", ".join(selection_scores[feat]["methods"])
+        print(f"  • {feat} ({methods})")
+
+if eliminated_1:
+    print(f"\nMinimal consensus (1/5 methods) - ELIMINATED: {len(eliminated_1)}")
+    for feat in sorted(eliminated_1):
+        methods = ", ".join(selection_scores[feat]["methods"])
+        print(f"  • {feat} ({methods})")
 
 print(f"\n{'='*80}")
 print(f"FINAL SELECTED FEATURES: {len(final_selected_features)} features")
@@ -527,7 +564,7 @@ for i, feat in enumerate(sorted(final_selected_features), 1):
     print(f"{i:2d}. {feat:30s} (Score: {score}/5, Methods: {methods})")
 
 # ============================================
-# 11. VISUALIZE CONSENSUS
+# 11. VISUALIZE CONSENSUS (UPDATED THRESHOLD LINE)
 # ============================================
 print("\nCreating consensus visualization...")
 
@@ -548,8 +585,9 @@ bars = ax.barh(
 )
 ax.set_yticks(range(len(selection_plot_df)))
 ax.set_yticklabels(selection_plot_df["feature"], fontsize=8)
+# UPDATED: Changed threshold line from 3 to 4
 ax.axvline(
-    x=3, color="black", linestyle="--", linewidth=2, label="Selection Threshold (≥3)"
+    x=4, color="black", linestyle="--", linewidth=2, label="Selection Threshold (≥4)"
 )
 ax.set_xlabel(
     "Number of Methods Selecting This Feature", fontsize=12, fontweight="bold"
@@ -559,7 +597,7 @@ ax.set_title(
     "Feature Selection Consensus Across Methods", fontsize=14, fontweight="bold"
 )
 ax.set_xlim([0, 6])
-ax.legend(["Threshold (≥3 methods)"], loc="lower right")
+ax.legend(["Threshold (≥4 methods)"], loc="lower right")
 ax.grid(axis="x", alpha=0.3)
 
 plt.tight_layout()
@@ -609,6 +647,7 @@ print("=" * 80)
 print(f"Original features: {df.drop(['SMK_stat_type_cd', 'drink'], axis=1).shape[1]}")
 print(f"After label encoding: {X.shape[1]}")
 print(f"After correlation removal: {X_no_corr.shape[1]}")
+print(f"Consensus threshold: ≥4 out of 5 methods (80% agreement)")
 print(f"Final selected features: {len(final_selected_features)}")
 print(
     f"Reduction: {(1 - len(final_selected_features)/df.drop(['SMK_stat_type_cd', 'drink'], axis=1).shape[1])*100:.1f}%"
