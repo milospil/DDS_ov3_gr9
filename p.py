@@ -8,6 +8,31 @@ df = pd.read_csv('datasets/preprocessed_data.csv')
 if 'id' not in df.columns:
     df.insert(0, 'id', range(len(df)))
 
+def round_floats(df, decimals=3):
+    """
+    Round all float columns in a DataFrame to specified decimal places
+    
+    Parameters:
+    -----------
+    df : pandas DataFrame
+        The dataframe to round
+    decimals : int
+        Number of decimal places (default=3)
+    
+    Returns:
+    --------
+    df : pandas DataFrame
+        DataFrame with rounded float values
+    """
+    float_cols = df.select_dtypes(include=['float64', 'float32']).columns
+    df[float_cols] = df[float_cols].round(decimals)
+    return df
+
+# Round all floats in the dataset
+df = round_floats(df, decimals=3)
+print("✓ Rounded all float values to 3 decimals")
+
+
 # Separate features (X) and target variable (y)
 X = df.drop('SMK_stat_type_cd', axis=1)
 y = df['SMK_stat_type_cd']
@@ -20,7 +45,7 @@ X_60, X_40, y_60, y_40 = train_test_split(
     stratify=y  # Keep class distribution balanced
 )
 
-print(f"60% portion: {X_60.shape}")
+print(f"\n 60% portion: {X_60.shape}")
 print(f"40% portion: {X_40.shape}")
 
 # Prepare 60% portion with IDs and target
@@ -30,10 +55,13 @@ df_60['SMK_stat_type_cd'] = y_60
 # Prepare 40% portion with IDs and target
 df_40 = X_40.copy()
 df_40['SMK_stat_type_cd'] = y_40
+df_40 = round_floats(df_40, decimals=3)
+
 
 # Save to CSV files
 df_60.to_csv('competition/oppg8/dataset_60_percent.csv', index=False)
 df_40.to_csv('competition/dataset_40_percent.csv', index=False)
+
 
 print("\n✓ Files saved to competition/ folder")
 print(f"  - dataset_60_percent.csv: {df_60.shape}")
@@ -50,6 +78,9 @@ X_train, X_test, y_train, y_test = train_test_split(
     random_state=42,
     stratify=y_40
 )
+
+X_train = round_floats(X_train, decimals=3)
+X_test = round_floats(X_test, decimals=3)
 
 print(f"\nFrom 40% portion:")
 print(f"  - Train set: {X_train.shape} (80% of 40%)")
