@@ -139,4 +139,4 @@ print("\n=== Summary ===")
 print(summary_df.sort_values("Test_MacroF1", ascending=False).to_string(index=False))
 
 summary_df.to_csv("model_summary.csv", index=False)
-print("\n📁 Lagret: model_summary.csv")
+print("\nLagret: model_summary.csv")
