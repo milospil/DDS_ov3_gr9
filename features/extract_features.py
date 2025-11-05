@@ -6,7 +6,7 @@ import numpy as np
 # ============================================
 # 1. LOAD DATA
 # ============================================
-df = pd.read_csv('datasets/smoking_drinking_numeric.csv')  # Adjust your filename
+df = pd.read_csv('datasets/smoking_drinking_filtered.csv')  # Adjust your filename
 
 print(f"Original feature count: {len(df.columns)}")
 print(f"Dataset shape: {df.shape}\n")
@@ -53,7 +53,7 @@ print("✓ Created ldl_hdl_ratio")
 def smoking_risk_score(row):
     score = 0
     if row['hemoglobin'] > 16: score += 2
-    if row['gamma_GTP'] > 60: score += 2  # ✅ FIXED: gamma_GTP not gamma_GT
+    if row['gamma_GTP'] > 60: score += 2  # FIXED: gamma_GTP not gamma_GT
     if row['HDL_chole'] < 40: score += 1
     if row['triglyceride'] > 150: score += 1
     return score
@@ -69,13 +69,13 @@ df['metabolic_syndrome_count'] = (
     (df['SBP'] >= 130).astype(int) +
     (df['BLDS'] > 100).astype(int)
 )
-print("✓ Created metabolic_syndrome_count")
+print("Created metabolic_syndrome_count")
 
 # 11. Age Groups
 df['age_group'] = pd.cut(df['age'], 
-                         bins=[0, 30, 40, 50, 60, 100],
-                         labels=['young', '30s', '40s', '50s', 'elderly'])
-print("✓ Created age_group")
+                         bins=[0, 30, 50, 70, 110],
+                         labels=[0, 1, 2, 3]).astype(int)
+print("Created age_group")
 
 # 12. Elevated Hemoglobin Indicator
 # Assuming sex: 1=male, 0=female (adjust if different)
@@ -83,7 +83,7 @@ df['elevated_hemoglobin'] = (
     ((df['sex'] == 1) & (df['hemoglobin'] > 17)) |
     ((df['sex'] == 0) & (df['hemoglobin'] > 15))
 ).astype(int)
-print("✓ Created elevated_hemoglobin")
+print("Created elevated_hemoglobin")
 
 # ============================================
 # 3. SUMMARY
@@ -114,3 +114,9 @@ print(f"{'='*60}\n")
 # Show sample of new features
 print("Sample of extracted features:")
 print(df[['BMI', 'total_hdl_ratio', 'smoking_risk_score', 'age_group']].head())
+
+# At the end of extract_features.py
+print("\nVerifying age_group column:")
+print(f"  Data type: {df['age_group'].dtype}")
+print(f"  Unique values: {sorted(df['age_group'].unique())}")
+print(f"  Value counts:\n{df['age_group'].value_counts().sort_index()}")

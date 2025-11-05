@@ -49,20 +49,24 @@ print("="*80)
 # Check for categorical columns
 categorical_cols = X.select_dtypes(include=['object', 'category']).columns.tolist()
 
+# IMPORTANT: age_group is already numeric (0, 1, 2, 3) - don't encode it!
+if 'age_group' in categorical_cols:
+    categorical_cols.remove('age_group')
+    print("ℹ️  'age_group' is already numeric - skipping encoding")
+
 if categorical_cols:
-    print(f"Found {len(categorical_cols)} categorical column(s): {categorical_cols}")
+    print(f"Found {len(categorical_cols)} categorical column(s) to encode: {categorical_cols}")
     
-    # One-hot encode age_group
-    if 'age_group' in categorical_cols:
-        print("\nOne-hot encoding 'age_group'...")
-        age_group_dummies = pd.get_dummies(X['age_group'], prefix='age_group', drop_first=True)
-        print(f"  Created {len(age_group_dummies.columns)} dummy variables:")
-        for col in age_group_dummies.columns:
-            print(f"    • {col}")
+    for col in categorical_cols:
+        print(f"\nOne-hot encoding '{col}'...")
+        col_dummies = pd.get_dummies(X[col], prefix=col, drop_first=True)
+        print(f"  Created {len(col_dummies.columns)} dummy variables:")
+        for dummy_col in col_dummies.columns:
+            print(f"    • {dummy_col}")
         
         # Drop original and add dummies
-        X = X.drop('age_group', axis=1)
-        X = pd.concat([X, age_group_dummies], axis=1)
+        X = X.drop(col, axis=1)
+        X = pd.concat([X, col_dummies], axis=1)
 else:
     print("No categorical columns found - all features are already numeric")
 
@@ -71,10 +75,31 @@ print(f"\n✓ After encoding: {X.shape[1]} features")
 # Verify all numeric
 non_numeric = X.select_dtypes(exclude=[np.number]).columns.tolist()
 if non_numeric:
-    print(f"\n❌ WARNING: Non-numeric columns remain: {non_numeric}")
+    print(f"\nWARNING: Non-numeric columns remain: {non_numeric}")
 else:
-    print("✓ All features verified as numeric\n")
+    print("✓ All features verified as numeric")
+    
+# Verify age_group is present
+if 'age_group' in X.columns:
+    print(f"✓ age_group present with values: {sorted(X['age_group'].unique())}\n")
+else:
+    print("⚠️  WARNING: age_group not found in features!\n")
 
+
+if 'age' in X.columns:
+    print("\nRationale:")
+    print("  • age_group is a categorical binned version of age")
+    print("  • age_group captures non-linear age effects better for smoking prediction")
+    print("  • Keeping both would introduce multicollinearity")
+    print("  • Domain knowledge suggests age categories are more meaningful than continuous age")
+    
+    X = X.drop('age', axis=1)
+    print(f"\n✓ Dropped 'age', keeping 'age_group'")
+    print(f"✓ Features remaining: {X.shape[1]}")
+else:
+    print("\n'age' column not found - skipping")
+
+    
 # ============================================
 # 3. METHOD 1: CORRELATION ANALYSIS
 # ============================================

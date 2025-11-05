@@ -98,6 +98,15 @@ print(f"Accuracy: {results['Accuracy'][-1]:.4f}")
 print(f"F1-Score: {results['F1-Score'][-1]:.4f}")
 print(f"ROC-AUC: {results['ROC-AUC'][-1]:.4f}\n")
 
+
+#EXTRACTION OF COEFFICIENTS for transfer learning purposes
+
+"""
+# Get coefficients (weights) for each class
+coefficients = log_reg.coef_  # Shape: (n_classes, n_features)
+intercepts = log_reg.intercept_  # Shape: (n_classes,)
+"""
+
 # -------------------- ALGORITHM 2: DECISION TREE --------------------
 print("="*60)
 print("TRAINING ALGORITHM 2: DECISION TREE")
