@@ -2,7 +2,7 @@ import pandas as pd
 from sklearn.preprocessing import StandardScaler
 
 # === 1) Les inn renset CSV ===
-df = pd.read_csv("./smoking_drinking_filtered.csv")
+df = pd.read_csv("./datasets/smoking_drinking_filtered.csv")
 
 # === 2) Definer hva som skal/ikke skal skaleres ===
 # - Ikke skaler: binære/ordinære kategorier og target
@@ -17,7 +17,7 @@ do_not_scale = {
 continuous_candidates = [
     'age', 'waistline',
     'SBP', 'DBP',
-    'BLDS',
+    'BLDS', "sight_left" , "sight_right" , "hear_left" , "hear_right"
     'tot_chole', 'HDL_chole', 'LDL_chole', 'triglyceride',
     'hemoglobin',
     'serum_creatinine',
